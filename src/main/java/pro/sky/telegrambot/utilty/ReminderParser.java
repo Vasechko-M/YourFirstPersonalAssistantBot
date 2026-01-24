@@ -72,6 +72,21 @@ public class ReminderParser {
                     attempts++;
                     continue;
                 }
+                Pattern pFlexibleSeparator = Pattern.compile(
+                        "(\\d{2}\\.\\d{2}\\.\\d{4})([^\\d\\w]+)(\\d{2}:\\d{2})([^\\w]+)?(.*)"
+                );
+                Matcher mFlex = pFlexibleSeparator.matcher(message);
+
+                if (mFlex.matches()) {
+                    String datePart = mFlex.group(1);
+                    String timePart = mFlex.group(3);
+                    String taskText = mFlex.group(5).trim();
+
+                    message = datePart + " " + timePart + " " + taskText;
+                    System.out.println("Автоисправленное сообщение: " + message);
+                    attempts++;
+                    continue;
+                }
 
                 System.out.println("Невозможно исправить формат, выход из цикла.");
                 break;
