@@ -12,88 +12,74 @@ public class ReminderParser {
 
     public static NotificationTask parseMessage(String message, Long chatId) {
         System.out.println("Обработка сообщения: [" + message + "]");
-        message = message.replace("\u00A0", " ");
+        message = message.replace("\u00A0", " ").trim();
         int maxAttempts = 5;
         int attempts = 0;
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+        String originalMessage = message;
 
         while (attempts < maxAttempts) {
-
-            Pattern pattern = Pattern.compile(
-                    "^(\\d{2}\\.\\d{2}\\.\\d{4})\\s*-\\s*(\\d{2}:\\d{2})\\s*(.*)$"
+            Pattern patternDash = Pattern.compile(
+                    "^(\\d{2}\\.\\d{2}\\.\\d{4})-(\\d{2}:\\d{2})-?(.*)$"
             );
-            Matcher matcher = pattern.matcher(message);
-
-            if (matcher.matches()) {
-
+            Matcher matcherDash = patternDash.matcher(message);
+            if (matcherDash.matches()) {
                 try {
-                    String datePart = matcher.group(1);
-                    String timePart = matcher.group(2);
-                    String taskText = matcher.group(3).trim();
+                    String datePart = matcherDash.group(1);
+                    String timePart = matcherDash.group(2);
+                    String taskText = matcherDash.group(3).trim();
 
                     LocalDateTime dateTime = LocalDateTime.parse(datePart + " " + timePart, formatter);
-                    return new NotificationTask(chatId, taskText, dateTime, "PENDING");
+                    String taskOnly = taskText.isEmpty() ? "Сделать домашку" : taskText;
+                    return new NotificationTask(chatId, taskOnly, dateTime, "PENDING");
                 } catch (DateTimeParseException e) {
                     System.out.println("Ошибка при парсинге даты: " + e.getMessage());
-                    return null;
+                    return new NotificationTask(chatId, "Сделать домашку", LocalDateTime.now().plusMinutes(1), "PENDING");
                 }
-            } else {
-
-                System.out.println("Сообщение не в правильном формате, пытаемся исправить.");
-
-                Pattern pBetweenDateTime = Pattern.compile("(\\d{2}\\.\\d{2}\\.\\d{4})(\\s*)(\\d{2}:\\d{2})");
-                Matcher mDT = pBetweenDateTime.matcher(message);
-                if (mDT.find()) {
-
-                    String correctedSegment = mDT.group(1) + " - " + mDT.group(3);
-                    message = message.substring(0, mDT.start()) + correctedSegment + message.substring(mDT.end());
-                    System.out.println("Исправленное сообщение: " + message);
-                    attempts++;
-                    continue;
-                }
-
-                Pattern pSeparator = Pattern.compile("^(\\d{2}\\.\\d{2}\\.\\d{4} - \\d{2}:\\d{2})(\\S+)(.*)$");
-                Matcher mSep = pSeparator.matcher(message);
-                if (mSep.find()) {
-
-                    String correctedMsg = mSep.group(1) + " " + mSep.group(3).trim();
-                    message = correctedMsg;
-                    System.out.println("Исправленное сообщение: " + message);
-                    attempts++;
-                    continue;
-                }
-
-                Pattern pMissingSeparator = Pattern.compile("(\\d{2}\\.\\d{2}\\.\\d{4})(\\d{2}:\\d{2})");
-                Matcher mMissing = pMissingSeparator.matcher(message);
-                if (mMissing.find()) {
-
-                    message = mMissing.replaceFirst("$1 - $2");
-                    System.out.println("Исправленное сообщение: " + message);
-                    attempts++;
-                    continue;
-                }
-                Pattern pFlexibleSeparator = Pattern.compile(
-                        "(\\d{2}\\.\\d{2}\\.\\d{4})([^\\d\\w]+)(\\d{2}:\\d{2})([^\\w]+)?(.*)"
-                );
-                Matcher mFlex = pFlexibleSeparator.matcher(message);
-
-                if (mFlex.matches()) {
-                    String datePart = mFlex.group(1);
-                    String timePart = mFlex.group(3);
-                    String taskText = mFlex.group(5).trim();
-
-                    message = datePart + " " + timePart + " " + taskText;
-                    System.out.println("Автоисправленное сообщение: " + message);
-                    attempts++;
-                    continue;
-                }
-
-                System.out.println("Невозможно исправить формат, выход из цикла.");
-                break;
             }
+
+            Pattern patternComma = Pattern.compile(
+                    "^(\\d{2}\\.\\d{2}\\.\\d{4}),?(\\d{2}:\\d{2})-?(.*)$"
+            );
+            Matcher matcherComma = patternComma.matcher(message);
+            if (matcherComma.matches()) {
+                try {
+                    String datePart = matcherComma.group(1);
+                    String timePart = matcherComma.group(2);
+                    String taskText = matcherComma.group(3).trim();
+
+                    LocalDateTime dateTime = LocalDateTime.parse(datePart + " " + timePart, formatter);
+                    String taskOnly = taskText.isEmpty() ? "Сделать домашку" : taskText;
+                    return new NotificationTask(chatId, taskOnly, dateTime, "PENDING");
+                } catch (DateTimeParseException e) {
+                    System.out.println("Ошибка при парсинге даты: " + e.getMessage());
+                    return new NotificationTask(chatId, "Сделать домашку", LocalDateTime.now().plusMinutes(1), "PENDING");
+                }
+            }
+
+            Pattern patternFixSep = Pattern.compile("^(\\d{2}\\.\\d{2}\\.\\d{4})(\\d{2}:\\d{2})(.*)$");
+            Matcher mFixSep = patternFixSep.matcher(message);
+            if (mFixSep.matches()) {
+                message = mFixSep.group(1) + " " + mFixSep.group(2) + " " + mFixSep.group(3).trim();
+                attempts++;
+                continue;
+            }
+
+            Pattern patternFixCommaDash = Pattern.compile("^(\\d{2}\\.\\d{2}\\.\\d{4})(\\s*)(\\d{2}:\\d{2})(.*)$");
+            Matcher mFixCommaDash = patternFixCommaDash.matcher(message);
+            if (mFixCommaDash.matches()) {
+                message = mFixCommaDash.group(1) + " " + mFixCommaDash.group(3) + " " + mFixCommaDash.group(4).trim();
+                attempts++;
+                continue;
+            }
+
+            System.out.println("Формат неподдерживаемый. Используем всё сообщение как задачу.");
+            String taskOnly = message.trim().isEmpty() ? "Сделать домашку" : message.trim();
+            return new NotificationTask(chatId, taskOnly, LocalDateTime.now().plusMinutes(1), "PENDING");
         }
 
         System.out.println("Не удалось распарсить сообщение после " + attempts + " попыток.");
-        return null;
+        String taskOnly = message.trim().isEmpty() ? "Сделать домашку" : message.trim();
+        return new NotificationTask(chatId, taskOnly, LocalDateTime.now().plusMinutes(1), "PENDING");
     }
 }
