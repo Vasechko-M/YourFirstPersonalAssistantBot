@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import pro.sky.telegrambot.model.NotificationTask;
 import pro.sky.telegrambot.repository.NotificationTaskRepository;
-import pro.sky.telegrambot.utilty.ReminderParser;
+import pro.sky.telegrambot.util.ReminderParser;
 
 import javax.annotation.PostConstruct;
 import java.util.List;

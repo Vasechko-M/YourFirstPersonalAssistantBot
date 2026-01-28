@@ -1,4 +1,4 @@
-package pro.sky.telegrambot.utilty;
+package pro.sky.telegrambot.util;
 
 import pro.sky.telegrambot.model.NotificationTask;
 
