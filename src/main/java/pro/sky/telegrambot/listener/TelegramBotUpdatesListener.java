@@ -14,6 +14,10 @@ import pro.sky.telegrambot.util.ReminderParser;
 import javax.annotation.PostConstruct;
 import java.util.List;
 
+/**
+ * Слушатель входящих обновлений Telegram-бота.
+ * Обрабатывает сообщения пользователей: команду /start и создание напоминаний.
+ */
 @Service
 public class TelegramBotUpdatesListener implements UpdatesListener {
 
@@ -25,11 +29,24 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     @Autowired
     private NotificationTaskRepository notificationTaskRepository;
 
+    @Autowired
+    private ReminderParser reminderParser;
+
+    /**
+     * Инициализирует слушателя после создания бина.
+     * Регистрирует данный listener в боте для получения обновлений.
+     */
     @PostConstruct
     public void init() {
         telegramBot.setUpdatesListener(this);
     }
 
+    /**
+     * Обрабатывает список входящих обновлений от Telegram.
+     * На команду /start отвечает приветствием; остальные сообщения парсит как напоминания.
+     * @param updates список обновлений
+     * @return константа для подтверждения обработки всех обновлений
+     */
     @Override
     public int process(List<Update> updates) {
         updates.forEach(update -> {
@@ -40,7 +57,7 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
                 if (messageText.equals("/start")) {
                     telegramBot.execute(new com.pengrad.telegrambot.request.SendMessage(chatId, "Включить напоминание?"));
                 } else {
-                    NotificationTask task = ReminderParser.parseMessage(messageText, chatId);
+                    NotificationTask task = reminderParser.parseMessage(messageText, chatId);
                     if (task != null) {
                         notificationTaskRepository.save(task);
                         telegramBot.execute(new com.pengrad.telegrambot.request.SendMessage(chatId, "Напоминание сохранено!"));
